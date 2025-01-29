@@ -32,7 +32,7 @@ gfn2-xtb_paramfitter/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/gfn2-xtb_paramfitter.git
+git clone https://github.com/josevlibera2010/gfn2-xtb_paramfitter.git
 cd gfn2-xtb_paramfitter
 ```
 
@@ -70,15 +70,7 @@ Each script contains detailed comments explaining the optimization process, para
 
 If you use this software in your research, please cite:
 
-```bibtex
-@article{velazquez2025multiobj,
-  title={Multi-objective evolutionary strategy for improving semiempirical Hamiltonians in the study of enzymatic reactions at the QM/MM level of theory},
-  author={Velázquez-Libera, José Luís; Recabarren, Rodrigo; Vöhringer-Martinez, Esteban; Salgueiro, Yamisleydi; Ruiz-Pernía, J. Javier; Caballero, Julio and Tuñón Iñaki},
-  journal={[ChemRxiv]},
-  year={2025},
-  publisher={[ChemRxiv]}
-}
-```
+...
 
 ## License
 

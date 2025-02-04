@@ -58,9 +58,6 @@ class XTBCurveAnalyzer:
             xtb_energ.append(energ)
             xtb_grad[nm] = grad
             xtb_chrg[nm] = chrg
-            #np.savetxt(f'{self.__root_dir}/{self.__id}_{nm}_forces.log', -grad)
-            #np.savetxt(f'{self.__root_dir}/{self.__id}_{nm}_charges.log', chrg)
-
 
         self.__xtb_curve['ENERGY'] = xtb_energ
         self.__xtb_curve['GRADIENT'] = xtb_grad
@@ -92,19 +89,15 @@ class XTBCurveAnalyzer:
                 dif = hl_frc - ll_frc
                 try:
                     d = np.sqrt(dif.dot(dif))
-                    val = d * math.exp(np.abs(dif))
                 except OverflowError:
-                    d = np.sqrt(dif.dot(dif))
-                    val = 1e+100
+                    return None, None, None, None
+                    
                 tmp.append(d)
-                dist.append(val)
+                dist.append(d)
 
             glob_data['data'][nm] = {'d_charg': ctmp, 'd_grad': tmp}
             dt = open(f'{self.__root_dir}/{self.__id}_data.pkl', 'wb')
 
             pickle.dump(glob_data, file=dt, protocol=pickle.HIGHEST_PROTOCOL)
             dt.close()
-
-            #np.savetxt(f"{self.__root_dir}/{self.__id}_{nm}_charges_forces.log",
-            #           np.column_stack((np.array(self.__curve.atomic_numbers[nm], dtype=np.int32), ctmp, tmp)))
         return evect_diff, energ_diff, chrg_diffs, dist

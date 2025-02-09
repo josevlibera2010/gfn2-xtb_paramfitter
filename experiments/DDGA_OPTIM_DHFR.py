@@ -1,22 +1,21 @@
-
-"""
-# Add the next four lines to the main script if it is external to the module folders
 import sys
-module_path="/path/to/gfn2-xtb_paramfitter"
+# you must set this path
+module_path="</path/to/gfn2-xtb_paramfitter>"
 if module_path not in sys.path:
     sys.path.append(module_path)
-"""
 
 import numpy as np
 from algorithms import DDGeneticAlgorithm as DDGA
 from objectivefunctions import ECGFittingV1
 from parameters import parm_HCONS
+import os, shutil
 
 """
 We set the output folder where the calculation results will be located.
-in the out_folder path will be created a folder at each evaluation of the objective function
+In the \"out_folder\" path, a folder at each evaluation of the objective function will be created
 If the evaluation runs without errors each folder will contain:
- 1) a pkl binary file per data set, codifying a python dictionary with the results
+ 1) a pkl binary file per data set, codifying a python dictionary with the results (if thread's calculation 
+    runs without errors)
  2) the parameter file (always exported)
 
 The file at '{out_folder}/logger.log' could be loaded as pandas dataframe for plotting the Scores and identifying 
@@ -28,26 +27,30 @@ the string with the list of parameters for the best solution to set "orig" varia
 """
 
 out_folder = 'DHFR_OPT/out'
+if os.path.isdir(out_folder) and os.path.exists(out_folder):
+    shutil.move(out_folder,out_folder + '_old')
+    os.makedirs(out_folder)
+else:
+    os.makedirs(out_folder)
+
 logger = f'{out_folder}/logger.log'
 
-# Locations for the folders containing the data sets
-path1 = 'DATASETS/CCR-IRC'
-path2 = 'DATASETS/DHFR-SC'
+# List with the locations of the folders containing the data sets
+paths=['DATASETS/CCR-IRC', 'DATASETS/DHFR-SC']
 
 # Creating the name patterns for data sets' files
-# Our data sets are constituted by gaussian output files ranging from 1.log to 299.log and 94.log for IRC and SC, resp.
+# Our data sets are constituted by gaussian output files ranging from 1.log to 299.log and 94.log for IRC and SC,
+# respectively. "base_names" is a list of lists with the base names of the log files for each data set
 bn1 = [str(st) for st in range(1, 300, 1)]
 bn2 = [str(st) for st in range(1, 41, 1)]
 
+base_names = [bn1, bn2]
 
 # We substitute string patterns to generate the parameter files with modifications
 patterns = [f'VARIABLE{i}#' for i in range(1, 76)]
 
 # Creating the function object for the optimization
-funct = ECGFittingV1(patterns=patterns, parm=parm_HCONS, path1=path1, path2=path2, out_folder=out_folder,
-                     bn1=bn1, bn2=bn2, bias_grad=False, bgrad=1, bias_chrg=False, bchrg=1)
-
-
+funct = ECGFittingV1(patterns=patterns, parm=parm_HCONS, paths=paths, base_names=base_names, out_folder=out_folder)
 
 def objective(inp):
     return funct.evaluate(solution=inp[0], thr_id=inp[1])

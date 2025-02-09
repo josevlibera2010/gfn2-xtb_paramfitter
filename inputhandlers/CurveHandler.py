@@ -32,9 +32,6 @@ class CurveHandler:
     def read_curve(self):
         pass
 
-    def read_irc(self):
-        pass
-
     def get_charges(self):
         return self.charges
 

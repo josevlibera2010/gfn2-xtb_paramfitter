@@ -1,5 +1,4 @@
 import os
-import pandas as pd
 from xtb.interface import Calculator
 from xtb.utils import get_method
 from readers import atmNToSymb, XYZReader, CHRGReader, toSymbols

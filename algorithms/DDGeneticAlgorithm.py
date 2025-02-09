@@ -5,6 +5,16 @@ from multiprocessing import Pool,TimeoutError
 import matplotlib.pyplot as plt
 from scipy.stats import qmc
 
+
+def format_sol(sol: list) -> str:
+    fout = f"\"[{sol[0]}"
+
+    for i in sol[1:]:
+        fout += f", {i:.7f}"
+    fout += "]\""
+    return fout
+
+
 class DDGeneticAlgorithm:
     DEFAULT_ALGORITHM_PARAMETERS={'max_num_iteration': None, 'population_size': 100, 'mutation_probability': 0.1,
                                   'elit_ratio': 0.01, 'crossover_probability': 0.5, 'parents_portion': 0.3,
@@ -122,7 +132,7 @@ class DDGeneticAlgorithm:
         sols = [(pop[i, :self.dim].copy(), self._generate_eval_id()) for i in range(self.pop_s)]
 
         logger = open(log_path, 'w')
-        logger.write('ID\tGlobalScore\tGradientScore\tChargeScore\tEnergyScore\n')
+        logger.write('ID\tGlobalScore\tGradientScore\tChargeScore\tEnergyScore\tSolution\n')
 
         obj_values = []
         with Pool(n_cpus) as pool:
@@ -131,19 +141,15 @@ class DDGeneticAlgorithm:
                 try:
                     obj_values.append(result.get(timeout=timeout))
                 except TimeoutError:
-                    if pre_scaled:
-                        obj_values.append(np.array([300, 1.0E+300, 1.0E+300, 1.0E+300]))
-                    else:
-                        obj_values.append(np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300]))
+                    obj_values.append(np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300]))
 
             #sys.stdout.write(f'Evaluation:\n {obj_values}\n\n')
             #sys.stdout.flush()
 
         for p in range(len(obj_values)):
             pop[p] = np.append(sols[p][0], obj_values[p][0])
-            #sys.stdout.write(f'Iteración:\n {p}\n')
-            #sys.stdout.flush()
-            logger.write(f'{sols[p][1]}\t{obj_values[p][0]}\t{obj_values[p][1]}\t{obj_values[p][2]}\t{obj_values[p][3]}\n')
+            logger.write(f'{sols[p][1]}\t{obj_values[p][0]}\t{obj_values[p][1]}\t{obj_values[p][2]}\t'
+                         f'{obj_values[p][3]}\t{format_sol(sols[p][0])}\n')
             logger.flush()
 
         # Report
@@ -249,15 +255,14 @@ class DDGeneticAlgorithm:
                     try:
                         obj_values.append(result.get(timeout=timeout))
                     except TimeoutError:
-                        if pre_scaled:
-                            obj_values.append(np.array([300, 1.0E+300, 1.0E+300, 1.0E+300]))
-                        else:
-                            obj_values.append(np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300]))
+                        obj_values.append(np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300]))
 
             for p in range(self.par_s, self.pop_s):
                 pop[p] = np.append(sols[p - self.par_s][0], obj_values[p - self.par_s][0])
                 logger.write(f'{sols[p - self.par_s][1]}\t{obj_values[p - self.par_s][0]}\t{obj_values[p - self.par_s][1]}\t'
-                             f'{obj_values[p - self.par_s][2]}\t{obj_values[p - self.par_s][3]}\n')
+                             f'{obj_values[p - self.par_s][2]}\t{obj_values[p - self.par_s][3]}\t'
+                             f'{format_sol(sols[p - self.par_s][0])}\n')
+
                 logger.flush()
 
             t += 1

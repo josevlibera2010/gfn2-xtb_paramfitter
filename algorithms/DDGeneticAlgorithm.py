@@ -111,7 +111,7 @@ class DDGeneticAlgorithm:
         self.report = []
         self.eval_id = 0
 
-    def run(self, log_path: str, guess: list = None, n_cpus: int = 1, timeout: int = 1000.0, pre_scaled=False):
+    def run(self, log_path: str, guess: list = None, n_cpus: int = 1, timeout: int = 1000.0, mut_fract: float = 0.7):
         assert (len(guess) == self.dim), \
             "\n guess must have the same number of dimensions as the dimensions of the solutions"
 
@@ -226,7 +226,7 @@ class DDGeneticAlgorithm:
                 pop[k] = par[k].copy()
 
             if t > 1 and self.prob_mut > 0.1:
-                self.prob_mut = self.prob_mut * 0.7
+                self.prob_mut = self.prob_mut * mut_fract
 
             sols = [()] * (self.pop_s - self.par_s)
             pos = 0

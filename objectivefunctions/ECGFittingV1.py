@@ -189,21 +189,25 @@ class ECGFittingV1:
             e1score = 1.0 + e1score / (npoints * (npoints - 1) / 2)
             e2score = 1.0 + np.sqrt(np.dot(energ_diff, energ_diff) / npoints)
             escore = np.power(e1score * e2score, 1.5)
-            grad_score = grad_score / len(dist)
-            chrg_score = chrg_score / len(chrg_diffs)
+            grad_score = 1.0 + grad_score / len(dist)
+            chrg_score = 1.0 + chrg_score / len(chrg_diffs)
             tmp_out = f'GRADSCORE: {grad_score:.10f} CHRGSCORE: {chrg_score:.10f} ESCORE: {escore:.10f}'
             tdata = np.array([grad_score, chrg_score, escore])
             if grad_score > self.__gwall or chrg_score > self.__cwall or escore > self.__ewall:
                 if self.__scale:
+                    grad_score = sigma_scaler(grad_score, self.__scale_factors[0])
+                    chrg_score = sigma_scaler(chrg_score, self.__scale_factors[1])
+                    escore = sigma_scaler(escore, self.__scale_factors[2])
+
                     log += f'SCORE: {1.0E+300} ' + tmp_out + '\n'
                     sys.stdout.write(log)
                     sys.stdout.flush()
-                    return np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300])
+                    return np.array([1.0E+300, grad_score, chrg_score, escore])
                 else:
                     log += f'SCORE: {1.0E+300} ' + tmp_out + '\n'
                     sys.stdout.write(log)
                     sys.stdout.flush()
-                    return np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300])
+                    return np.array([1.0E+300, grad_score, chrg_score, escore])
 
             if escore < self.__elim:
                 escore = self.__elim
@@ -228,7 +232,7 @@ class ECGFittingV1:
 
             grad_score, chrg_score, escore = self.apply_biases(grad_score, chrg_score, escore)
 
-            tmp_gs = (1 + grad_score) * (1 + chrg_score) * (1 + escore)
+            tmp_gs = grad_score * chrg_score * escore
 
         except Exception as e:
             log += str(e)
@@ -236,7 +240,6 @@ class ECGFittingV1:
             sys.stdout.write(log)
             sys.stdout.flush()
             return np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300])
-
 
 
         log += f'SCORE: {tmp_gs:.10f} ' + tmp_out + '\n'

@@ -7,7 +7,7 @@ from scipy.stats import qmc
 
 
 def format_sol(sol: list) -> str:
-    fout = f"\"[{sol[0]}"
+    fout = f"\"[{sol[0]:.7f}"
 
     for i in sol[1:]:
         fout += f", {i:.7f}"

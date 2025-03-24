@@ -111,9 +111,11 @@ class DDGeneticAlgorithm:
         self.report = []
         self.eval_id = 0
 
-    def run(self, log_path: str, guess: list = None, n_cpus: int = 1, timeout: int = 1000.0, mut_fract: float = 0.7):
-        assert (len(guess) == self.dim), \
-            "\n guess must have the same number of dimensions as the dimensions of the solutions"
+    def run(self, log_path: str, guess: list = None, n_cpus: int = 1, timeout: int = 10000.0, mut_fract: float = 0.7):
+        if guess:
+            assert (len(guess) == self.dim), \
+                "\n guess must have the same number of dimensions as the dimensions of the solutions"
+            guess=list(guess)
 
 
 
@@ -124,7 +126,7 @@ class DDGeneticAlgorithm:
         pop = np.column_stack((pop, np.zeros(self.pop_s)))
 
         ini = 0
-        if guess is not None:
+        if guess:
             ini = 1
             guess.append(0)
             pop[0]=np.array(guess)

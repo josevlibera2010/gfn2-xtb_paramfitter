@@ -6,12 +6,32 @@ import shutil
 import numpy as np
 import sys
 import time
+from typing import List, Dict, Tuple, Optional, Union
 
 
 def sigma_scaler(x: np.float64, k: np.float64) -> np.float64:
-    return 1 / (1 + np.exp(- (x-k)/k))
+    """
+    Apply sigmoid scaling to a value.
+
+    Args:
+        x: Value to scale
+        k: Scaling factor
+
+    Returns:
+        Scaled value using sigmoid function
+    """
+    return 1 / (1 + np.exp(- (x - k) / k))
 
 class ECGFittingV1:
+    """
+    Energy Charge Gradient fitting (version 1) class for evaluating
+    parameter sets in quantum mechanical calculations using a multi-objective
+    optimization approach.
+
+    This class implements the algorithm described in "Multi-objective evolutionary
+    strategy for improving semiempirical Hamiltonians in the study of enzymatic
+    reactions at the QM/MM level of theory".
+    """
 
     def __init__(self, patterns: list, parm: str, out_folder: str, base_names: list[list] = None, paths: list = None,
                  path2: str = None, bias_grad: bool = False, bgrad: float = 0, bias_chrg: bool = False,

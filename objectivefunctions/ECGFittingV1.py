@@ -34,10 +34,10 @@ class ECGFittingV1:
     """
 
     def __init__(self, patterns: list, parm: str, out_folder: str, base_names: list[list] = None, paths: list = None,
-                 path2: str = None, bias_grad: bool = False, bgrad: float = 0, bias_chrg: bool = False,
-                 bchrg: float = 0, bias_ener: bool = False, bener: float = 0, elim: float = 0, clim: float = 0,
-                 glim: float = 0, ewall: float = 1.0E+100, cwall: float = 1.0E+100, gwall: float = 1.0E+100,
-                 scale: bool = False, scale_factors: tuple = (1.0E+6, 1.0E+6, 1.0E+6), read_hl_curves: bool = True):
+                 bias_grad: bool = False, bgrad: float = 0, bias_chrg: bool = False, bchrg: float = 0,
+                 bias_ener: bool = False, bener: float = 0, elim: float = 0, clim: float = 0, glim: float = 0,
+                 ewall: float = 1.0E+100, cwall: float = 1.0E+100, gwall: float = 1.0E+100, scale: bool = False,
+                 scale_factors: tuple = (1.0E+6, 1.0E+6, 1.0E+6), read_hl_curves: bool = True):
         self.__patterns = patterns
         self.__parm = parm
         self.__paths = None

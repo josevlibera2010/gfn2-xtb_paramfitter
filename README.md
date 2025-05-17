@@ -68,7 +68,9 @@ Each script contains detailed comments explaining the optimization process, para
 
 ## Citation
 
-Velázquez-Libera, J. L., Recabarren, R., Vöhringer-Martinez, E., Salgueiro, Y., Ruiz-Pernía, J. J., Caballero, J., & Tuñón, I. (2025). __Multi-objective evolutionary strategy for improving semiempirical  Hamiltonians in the study of enzymatic reactions at the QM/MM level of theory.__ _ChemRxiv_. [doi:10.26434/chemrxiv-2025-pvztk](https://chemrxiv.org/engage/chemrxiv/article-details/67ab41626dde43c90863e00a)  This content is a preprint and has not been peer-reviewed.
+__Multiobjective Evolutionary Strategy for Improving Semiempirical Hamiltonians in the Study of Enzymatic Reactions at the QM/MM Level of Theory.__ 
+José Luís Velázquez-Libera, Rodrigo Recabarren, Esteban Vöhringer-Martinez, Yamisleydi Salgueiro, J. Javier Ruiz-Pernía, Julio Caballero, and Iñaki Tuñón.
+Journal of Chemical Theory and Computation Article ASAP. DOI: 10.1021/acs.jctc.5c00247
 
 ## License
 

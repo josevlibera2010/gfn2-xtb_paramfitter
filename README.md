@@ -21,7 +21,9 @@ gfn2-xtb_paramfitter/
 ├── inputhandlers/        # Input processing utilities
 ├── objectivefunctions/   # Objective function definitions
 │   ├── __init__.py
-│   └── ECGFittingV1.py
+│   └── ECGFittingV1.py   # Original OF 
+|   └── ECGFittingV2.py   # Improved version of the OF adding more than 2 curves
+|   └── ECGFittingV3.py   # More flexible version of the V2 OF, allowing to select/exclude components
 ├── parameters/           # Parameter configurations
 ├── readers/             # File reading utilities
 ├── runners/             # Execution modules

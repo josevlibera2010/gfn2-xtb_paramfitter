@@ -1,7 +1,6 @@
 class CurveHandler:
 
-    def __init__(self, root_path: str, base_names: list, res_format: str='log', external_chrg: bool=False,
-                 read_irc: bool=False):
+    def __init__(self, root_path: str, base_names: list, res_format: str='log', external_chrg: bool=False):
         self.root_path = root_path
         self.base_names = base_names
         self.external_chrg = external_chrg
@@ -23,10 +22,8 @@ class CurveHandler:
         self.atomic_numbers = None
         self.charges = None
         self.external_charges = None
-        if read_irc:
-            self.read_irc()
-        else:
-            self.read_curve()
+
+        self.read_curve()
 
 
     def read_curve(self):

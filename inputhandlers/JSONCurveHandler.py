@@ -1,4 +1,5 @@
 import json
+import numpy as np
 from inputhandlers.CurveHandler import CurveHandler
 
 
@@ -19,10 +20,27 @@ class JSONCurveHandler(CurveHandler):
 
     def read_curve(self):
         self.energies = self.json_data['energies']
-        self.charges = self.json_data['charges']
-        self.atomic_numbers = self.json_data['atomic_numbers']
-        self.gradients = self.json_data['gradients']
-        self.coordinates = self.json_data['coordinates']
+
+        # Convert atomic_numbers, coordinates, charges, and gradients to numpy arrays
+        self.atomic_numbers = {}
+        for key, value in self.json_data['atomic_numbers'].items():
+            self.atomic_numbers[key] = np.array(value)
+
+        self.coordinates = {}
+        for key, value in self.json_data['coordinates'].items():
+            self.coordinates[key] = np.array(value)/1.8897259885789
+
+        self.charges = {}
+        for key, value in self.json_data['charges'].items():
+            self.charges[key] = np.array(value)
+
+        # Convert gradients (nested structure: dict -> list -> 2D array)
+        # XTBFitters expects gradients[key][0] to be a 2D array of shape (n_atoms, 3)
+        self.gradients = {}
+        for key, value in self.json_data['gradients'].items():
+            # Convert list of [x,y,z] vectors to a single 2D array wrapped in a list
+            self.gradients[key] = [np.array(value)]
+
         self.system = self.json_data['system']
 
         if self.external_chrg:

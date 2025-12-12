@@ -207,11 +207,11 @@ class ECGFittingV3Json:
                     chrg_score = chrg_score + i * np.exp(i * 2)
 
                 for j in dist:
-                    pen=1
-                    if j > self.__ref_grad:
-                        pen=(j-self.__ref_grad)*1000
+                    pen=0
+                    if j > self.__ref_grad and self.__ref_grad > 0:
+                        pen = (j - self.__ref_grad) / self.__ref_grad
 
-                    grad_score = grad_score + j * 100 * np.exp(j * 100 * pen)
+                    grad_score = grad_score + j * 100 * np.exp(j * 100 * (1+pen))
 
                 for k in evect_diff:
                     e1score = e1score + k * np.exp(k) / (npoints * (npoints - 1) / 2)

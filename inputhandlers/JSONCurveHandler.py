@@ -38,7 +38,8 @@ class JSONCurveHandler(CurveHandler):
         # XTBFitters expects gradients[key][0] to be a 2D array of shape (n_atoms, 3)
         self.gradients = {}
         for key, value in self.json_data['gradients'].items():
-            # Convert list of [x,y,z] vectors to a single 2D array wrapped in a list
+            # Convert a list of [x,y,z] vectors to a single 2D array wrapped in a list
+            # (compatibility with XTBFitters/cclib)
             self.gradients[key] = [np.array(value)]
 
         self.system = self.json_data['system']

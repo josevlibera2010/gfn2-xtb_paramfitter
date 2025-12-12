@@ -7,11 +7,9 @@ from scipy.stats import qmc
 
 
 def format_sol(sol: list) -> str:
-    fout = f"\"[{sol[0]:.7f}"
-
-    for i in sol[1:]:
-        fout += f", {i:.7f}"
-    fout += "]\""
+    fout=''
+    for i in sol:
+        fout += f"\t{i:.7f}"
     return fout
 
 
@@ -134,7 +132,10 @@ class DDGeneticAlgorithm:
         sols = [(pop[i, :self.dim].copy(), self._generate_eval_id()) for i in range(self.pop_s)]
 
         logger = open(log_path, 'w')
-        logger.write('ID\tGlobalScore\tGradientScore\tChargeScore\tEnergyScore\tSolution\n')
+        var_names=''
+        for var in [f'V{v}' for v in range(self.dim)]: var_names+=f'\t{var}'
+
+        logger.write(f'ID\tIter\tGlobalScore\tGradientScore\tChargeScore\tEnergyScore{var_names}\n')
 
         obj_values = []
         with Pool(n_cpus) as pool:
@@ -150,8 +151,8 @@ class DDGeneticAlgorithm:
 
         for p in range(len(obj_values)):
             pop[p] = np.append(sols[p][0], obj_values[p][0])
-            logger.write(f'{sols[p][1]}\t{obj_values[p][0]}\t{obj_values[p][1]}\t{obj_values[p][2]}\t'
-                         f'{obj_values[p][3]}\t{format_sol(sols[p][0])}\n')
+            logger.write(f'{sols[p][1]}\t0\t{obj_values[p][0]}\t{obj_values[p][1]}\t{obj_values[p][2]}\t'
+                         f'{obj_values[p][3]}{format_sol(sols[p][0])}\n')
             logger.flush()
 
         # Report
@@ -261,8 +262,8 @@ class DDGeneticAlgorithm:
 
             for p in range(self.par_s, self.pop_s):
                 pop[p] = np.append(sols[p - self.par_s][0], obj_values[p - self.par_s][0])
-                logger.write(f'{sols[p - self.par_s][1]}\t{obj_values[p - self.par_s][0]}\t{obj_values[p - self.par_s][1]}\t'
-                             f'{obj_values[p - self.par_s][2]}\t{obj_values[p - self.par_s][3]}\t'
+                logger.write(f'{sols[p - self.par_s][1]}\t{t}\t{obj_values[p - self.par_s][0]}\t{obj_values[p - self.par_s][1]}\t'
+                             f'{obj_values[p - self.par_s][2]}\t{obj_values[p - self.par_s][3]}'
                              f'{format_sol(sols[p - self.par_s][0])}\n')
 
                 logger.flush()

@@ -40,7 +40,7 @@ class JSONCurveHandler(CurveHandler):
         for key, value in self.json_data['gradients'].items():
             # Convert a list of [x,y,z] vectors to a single 2D array wrapped in a list
             # (compatibility with XTBFitters/cclib)
-            self.gradients[key] = [np.array(value)]
+            self.gradients[key] = [-np.array(value)]
 
         self.system = self.json_data['system']
 

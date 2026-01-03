@@ -1,6 +1,8 @@
 import cclib
 import numpy as np
 
+from constants import HARTREE_TO_KCAL_MOL, EV_TO_HARTREE
+
 
 class QMResultsReader:
     def __init__(self, logfile: str):
@@ -8,7 +10,8 @@ class QMResultsReader:
         self.data = cclib.io.ccopen(logfile).parse()
 
     def get_energy(self) -> float:
-        return self.data.scfenergies[-1] * 627.509391/27.2113961318
+        # cclib returns scfenergies in eV; convert to kcal/mol
+        return self.data.scfenergies[-1] * HARTREE_TO_KCAL_MOL / EV_TO_HARTREE
 
     def get_charges(self) -> np.array:
         return self.data.atomcharges['mulliken']
@@ -31,7 +34,8 @@ class QMIRCReader(QMResultsReader):
         super(QMIRCReader, self).__init__(logfile=logfile)
 
     def get_energy(self) -> np.array:
-        return self.data.scfenergies/27.2113961318
+        # cclib returns scfenergies in eV; convert to Hartree
+        return self.data.scfenergies / EV_TO_HARTREE
 
     def get_coords(self) -> np.array:
         return self.data.atomcoords[1:]

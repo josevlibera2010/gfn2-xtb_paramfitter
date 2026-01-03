@@ -9,7 +9,7 @@ from scipy.stats import qmc
 def format_sol(sol: list) -> str:
     fout=''
     for i in sol:
-        fout += f"\t{i:.7f}"
+        fout += f"\t{i:.6f}"
     return fout
 
 
@@ -83,14 +83,6 @@ class DDGeneticAlgorithm:
 
         if self.param['max_num_iteration'] is None:
             self.iterate = 0
-            for i in range(0, self.dim):
-                if self.var_type[i] == 'int':
-                    self.iterate += (self.var_bound[i][1] - self.var_bound[i][0]) * self.dim * (100 / self.pop_s)
-                else:
-                    self.iterate += (self.var_bound[i][1] - self.var_bound[i][0]) * 50 * (100 / self.pop_s)
-            self.iterate = int(self.iterate)
-            if (self.iterate * self.pop_s) > 10000000:
-                self.iterate = 10000000 / self.pop_s
         else:
             self.iterate = int(self.param['max_num_iteration'])
 
@@ -151,8 +143,8 @@ class DDGeneticAlgorithm:
 
         for p in range(len(obj_values)):
             pop[p] = np.append(sols[p][0], obj_values[p][0])
-            logger.write(f'{sols[p][1]}\t0\t{obj_values[p][0]}\t{obj_values[p][1]}\t{obj_values[p][2]}\t'
-                         f'{obj_values[p][3]}{format_sol(sols[p][0])}\n')
+            logger.write(f'{sols[p][1]}\t0\t{obj_values[p][0]:.6f}\t{obj_values[p][1]:.6f}\t{obj_values[p][2]:.6f}\t'
+                         f'{obj_values[p][3]:.6f}{format_sol(sols[p][0])}\n')
             logger.flush()
 
         # Report
@@ -262,8 +254,8 @@ class DDGeneticAlgorithm:
 
             for p in range(self.par_s, self.pop_s):
                 pop[p] = np.append(sols[p - self.par_s][0], obj_values[p - self.par_s][0])
-                logger.write(f'{sols[p - self.par_s][1]}\t{t}\t{obj_values[p - self.par_s][0]}\t{obj_values[p - self.par_s][1]}\t'
-                             f'{obj_values[p - self.par_s][2]}\t{obj_values[p - self.par_s][3]}'
+                logger.write(f'{sols[p - self.par_s][1]}\t{t}\t{obj_values[p - self.par_s][0]:.6f}\t{obj_values[p - self.par_s][1]:.6f}\t'
+                             f'{obj_values[p - self.par_s][2]:.6f}\t{obj_values[p - self.par_s][3]:.6f}'
                              f'{format_sol(sols[p - self.par_s][0])}\n')
 
                 logger.flush()
@@ -376,6 +368,8 @@ class DDGeneticAlgorithm:
 
     @staticmethod
     def progress(count, total, status=''):
+        if total == 0:
+            return  # Nothing to display if total is zero
         bar_len = 50
         filled_len = int(round(bar_len * count / float(total)))
 
@@ -384,3 +378,285 @@ class DDGeneticAlgorithm:
 
         sys.stdout.write('\r%s %s%s %s' % (bar, percents, '%', status))
         sys.stdout.flush()
+
+
+class DDGeneticAlgorithmV1(DDGeneticAlgorithm):
+    """
+    Variant of DDGeneticAlgorithm with improved boundary adjustment logic.
+
+    This version expands boundaries when ANY elite solution falls close to them,
+    and contracts boundaries when ALL elite solutions are far from them (after iteration 2).
+    """
+
+    def __init__(self, function: callable, dimension: int, variable_boundaries: np.array = None,
+                 algorithm_parameters=DDGeneticAlgorithm.DEFAULT_ALGORITHM_PARAMETERS,
+                 convergence_curve=True, progress_bar=True):
+        super().__init__(function, dimension, variable_boundaries, algorithm_parameters,
+                         convergence_curve, progress_bar)
+        self.__name__ = "DDGeneticAlgorithmV1"
+
+    def _adjust_boundaries(self, elite_solutions: np.ndarray, iteration: int):
+        """
+        Adjust variable boundaries based on elite solutions positions.
+
+        For each parameter Pi with bounds [Pi_min, Pi_max]:
+        - EXPANSION: If ANY elite is within 5% of a boundary, expand that boundary by 20%
+        - CONTRACTION (after iteration 2): If ALL elites are >20% away from a boundary,
+          move that boundary to be 10% from the closest elite value
+
+        Args:
+            elite_solutions: Array of elite solutions (num_elit x dim)
+            iteration: Current iteration number
+        """
+        CLOSE_THRESHOLD = 0.05  # 5% of range - triggers expansion
+        FAR_THRESHOLD = 0.20    # 20% of range - triggers contraction
+        CONTRACTION_MARGIN = 0.10  # 10% margin from closest elite when contracting
+
+        for ig in range(self.dim):
+            var_range = abs(self.var_bound[ig][1] - self.var_bound[ig][0])
+            close_dist = var_range * CLOSE_THRESHOLD
+            far_dist = var_range * FAR_THRESHOLD
+
+            # Get all elite values for this parameter
+            elite_values = elite_solutions[:, ig]
+
+            # Check proximity to lower bound
+            min_dist_to_lower = np.min(elite_values - self.var_bound[ig][0])
+            any_close_to_lower = min_dist_to_lower < close_dist
+            all_far_from_lower = min_dist_to_lower > far_dist
+
+            # Check proximity to upper bound
+            min_dist_to_upper = np.min(self.var_bound[ig][1] - elite_values)
+            any_close_to_upper = min_dist_to_upper < close_dist
+            all_far_from_upper = min_dist_to_upper > far_dist
+
+            # EXPANSION: If any elite is close to a boundary, expand it
+            if any_close_to_lower:
+                closest_to_lower = np.min(elite_values)
+                self.var_bound[ig][0] = closest_to_lower - abs(closest_to_lower) * 0.2
+
+            if any_close_to_upper:
+                closest_to_upper = np.max(elite_values)
+                self.var_bound[ig][1] = closest_to_upper + abs(closest_to_upper) * 0.2
+
+            # CONTRACTION: After iteration 5, if all elites are far from a boundary, contract it
+            if iteration > 5:
+                if all_far_from_lower and not any_close_to_lower:
+                    closest_to_lower = np.min(elite_values)
+                    new_var_range = abs(self.var_bound[ig][1] - self.var_bound[ig][0])
+                    new_lower = closest_to_lower - new_var_range * CONTRACTION_MARGIN
+                    # Only contract if the new bound is higher than the current one
+                    if new_lower > self.var_bound[ig][0]:
+                        self.var_bound[ig][0] = new_lower
+
+                if all_far_from_upper and not any_close_to_upper:
+                    closest_to_upper = np.max(elite_values)
+                    new_var_range = abs(self.var_bound[ig][1] - self.var_bound[ig][0])
+                    new_upper = closest_to_upper + new_var_range * CONTRACTION_MARGIN
+                    # Only contract if the new bound is lower than the current one
+                    if new_upper < self.var_bound[ig][1]:
+                        self.var_bound[ig][1] = new_upper
+
+    def run(self, log_path: str, guess: list = None, n_cpus: int = 1, timeout: int = 10000.0, mut_fract: float = 0.7):
+        if guess:
+            assert (len(guess) == self.dim), \
+                "\n guess must have the same number of dimensions as the dimensions of the solutions"
+            guess = list(guess)
+
+        # Initial Population using Latin Hypercube Sampling
+        sampler = qmc.LatinHypercube(d=self.dim)
+        initial_samples = sampler.random(n=self.pop_s)
+        pop = qmc.scale(initial_samples, self.var_bound[:, 0], self.var_bound[:, 1])
+        pop = np.column_stack((pop, np.zeros(self.pop_s)))
+
+        ini = 0
+        if guess:
+            ini = 1
+            guess.append(0)
+            pop[0] = np.array(guess)
+
+        sols = [(pop[i, :self.dim].copy(), self._generate_eval_id()) for i in range(self.pop_s)]
+
+        logger = open(log_path, 'w')
+        var_names = ''
+        for var in [f'V{v}' for v in range(self.dim)]:
+            var_names += f'\t{var}'
+
+        logger.write(f'ID\tIter\tGlobalScore\tGradientScore\tChargeScore\tEnergyScore{var_names}\n')
+
+        obj_values = []
+        with Pool(n_cpus) as pool:
+            results_pool = [pool.apply_async(self.f, (s,)) for s in sols]
+            for result in results_pool:
+                try:
+                    obj_values.append(result.get(timeout=timeout))
+                except TimeoutError:
+                    obj_values.append(np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300]))
+
+        for p in range(len(obj_values)):
+            pop[p] = np.append(sols[p][0], obj_values[p][0])
+            logger.write(f'{sols[p][1]}\t0\t{obj_values[p][0]}\t{obj_values[p][1]}\t{obj_values[p][2]}\t'
+                         f'{obj_values[p][3]}{format_sol(sols[p][0])}\n')
+            logger.flush()
+
+        # Report
+        self.report = []
+        self.best_function = pop[0, self.dim].copy()
+        self.best_variable = pop[0, : self.dim].copy()
+
+        init_elit = np.float64(self.best_function)
+        
+        t = 1
+        counter = 0
+        while t <= self.iterate:
+            if self.progress_bar:
+                self.progress(t, self.iterate, status="GA is running...")
+
+            # Sort
+            pop = pop[pop[:, self.dim].argsort()]
+
+            if pop[0, self.dim] < self.best_function:
+                counter = 0
+                self.best_function = pop[0, self.dim].copy()
+                self.best_variable = pop[0, : self.dim].copy()
+            else:
+                counter += 1
+
+            # Adjust boundaries based on elite solutions
+            elite_solutions = pop[:self.num_elit, :self.dim]
+            elit_val = pop[:self.num_elit, self.dim]
+            elite_solutions = elite_solutions[elit_val <= init_elit]
+
+            if elite_solutions.shape[0] > 5:
+                self._adjust_boundaries(elite_solutions, t)
+
+            # Report
+            self.report.append(pop[0, self.dim])
+
+            # Normalizing objective function
+            minobj = pop[0, self.dim]
+            if minobj < 0:
+                normobj = pop[:, self.dim] + abs(minobj)
+            else:
+                normobj = pop[:, self.dim].copy()
+
+            maxnorm = np.amax(normobj)
+            normobj = maxnorm - normobj + 1
+
+            # Calculate probability
+            sum_normobj = np.sum(normobj)
+            prob = np.zeros(self.pop_s)
+            prob = normobj / sum_normobj
+            cumprob = np.cumsum(prob)
+
+            # Select parents
+            par = np.array([np.zeros(self.dim + 1)] * self.par_s)
+
+            for k in range(0, self.num_elit):
+                par[k] = pop[k].copy()
+            for k in range(self.num_elit, self.par_s):
+                index = np.searchsorted(cumprob, np.random.random())
+                par[k] = pop[index].copy()
+
+            ef_par_list = np.array([False] * self.par_s)
+            par_count = 0
+            while par_count == 0:
+                for k in range(0, self.par_s):
+                    if np.random.random() <= self.prob_cross:
+                        ef_par_list[k] = True
+                        par_count += 1
+
+            ef_par = par[ef_par_list].copy()
+
+            # New generation
+            pop = np.array([np.zeros(self.dim + 1)] * self.pop_s)
+
+            for k in range(0, self.par_s):
+                pop[k] = par[k].copy()
+
+            if t > 1 and self.prob_mut > 0.1:
+                self.prob_mut = self.prob_mut * mut_fract
+
+            sols = [()] * (self.pop_s - self.par_s)
+            pos = 0
+            for k in range(self.par_s, self.pop_s, 2):
+                r1 = np.random.randint(0, par_count)
+                r2 = np.random.randint(0, par_count)
+                pvar1 = ef_par[r1, : self.dim].copy()
+                pvar2 = ef_par[r2, : self.dim].copy()
+                ch = self.cross(pvar1, pvar2, self.c_type)
+                ch1 = ch[0].copy()
+                ch2 = ch[1].copy()
+
+                ch1 = self.mut(ch1)
+                ch2 = self.mutmidle(ch2, pvar1, pvar2)
+                self.eval_id += 1
+                sols[pos] = (ch1, self.eval_id)
+                pos += 1
+                self.eval_id += 1
+                sols[pos] = (ch2, self.eval_id)
+                pos += 1
+
+            obj_values = []
+            with Pool(n_cpus) as pool:
+                results_pool = [pool.apply_async(self.f, (s,)) for s in sols]
+                for result in results_pool:
+                    try:
+                        obj_values.append(result.get(timeout=timeout))
+                    except TimeoutError:
+                        obj_values.append(np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300]))
+
+            for p in range(self.par_s, self.pop_s):
+                pop[p] = np.append(sols[p - self.par_s][0], obj_values[p - self.par_s][0])
+                logger.write(f'{sols[p - self.par_s][1]}\t{t}\t{obj_values[p - self.par_s][0]}\t{obj_values[p - self.par_s][1]}\t'
+                             f'{obj_values[p - self.par_s][2]}\t{obj_values[p - self.par_s][3]}'
+                             f'{format_sol(sols[p - self.par_s][0])}\n')
+
+                logger.flush()
+
+            t += 1
+
+            sys.stdout.write('\r The best solution found:\n %s' % (self.best_variable))
+            sys.stdout.write('\n\n Objective function:\n %s\n' % (self.best_function))
+            sys.stdout.flush()
+
+            if counter > self.mniwi:
+                pop = pop[pop[:, self.dim].argsort()]
+                if pop[0, self.dim] >= self.best_function:
+                    t = self.iterate
+                    if self.progress_bar:
+                        self.progress(t, self.iterate, status="GA is running...")
+                    time.sleep(2)
+                    t += 1
+                    self.stop_mniwi = True
+
+        # Sort
+        pop = pop[pop[:, self.dim].argsort()]
+
+        if pop[0, self.dim] < self.best_function:
+            self.best_function = pop[0, self.dim].copy()
+            self.best_variable = pop[0, : self.dim].copy()
+        # Report
+
+        self.report.append(pop[0, self.dim])
+
+        self.output_dict = {'variable': self.best_variable, 'function':
+            self.best_function}
+        if self.progress_bar:
+            show = ' ' * 100
+            sys.stdout.write('\r%s' % (show))
+        sys.stdout.write('\r The best solution found:\n %s' % (self.best_variable))
+        sys.stdout.write('\n\n Objective function:\n %s\n' % (self.best_function))
+        sys.stdout.flush()
+        re = np.array(self.report)
+        if self.convergence_curve == True:
+            plt.plot(re)
+            plt.xlabel('Iteration')
+            plt.ylabel('Objective function')
+            plt.title('Genetic Algorithm')
+            plt.show()
+
+        if self.stop_mniwi == True:
+            sys.stdout.write('\nWarning: GA is terminated due to the' +
+                             ' maximum number of iterations without improvement was met!')
+        logger.close()

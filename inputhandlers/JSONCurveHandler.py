@@ -1,6 +1,7 @@
 import json
 import numpy as np
 from inputhandlers.CurveHandler import CurveHandler
+from constants import ANGSTROM_TO_BOHR
 
 
 class JSONCurveHandler(CurveHandler):
@@ -28,7 +29,8 @@ class JSONCurveHandler(CurveHandler):
 
         self.coordinates = {}
         for key, value in self.json_data['coordinates'].items():
-            self.coordinates[key] = np.array(value)/1.8897259885789
+            # Convert from Bohr (JSON data) to Angstrom
+            self.coordinates[key] = np.array(value) / ANGSTROM_TO_BOHR
 
         self.charges = {}
         for key, value in self.json_data['charges'].items():

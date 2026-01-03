@@ -30,8 +30,8 @@ class DFTCurveHandler(CurveHandler):
             self.gradients[i] = [0.0 for i in self.energies]
             try:
                 self.gradients[i] = gout.get_gradients()
-            except:
-                print(f'Gradient calculations not available for file: {i}\n')
+            except AttributeError as e:
+                print(f'{e}\nGradient calculations not available for file: {i}\n')
             if self.external_chrg:
                 self.external_charges[i] = pd.read_csv(self.ext_chrg_paths[i], sep=',')
 

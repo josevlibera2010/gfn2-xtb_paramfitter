@@ -1,1 +1,2 @@
-from .DDGeneticAlgorithm import DDGeneticAlgorithm
+from .DDGeneticAlgorithm import DDGeneticAlgorithm,DDGeneticAlgorithmV1
+

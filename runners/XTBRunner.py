@@ -1,19 +1,25 @@
+import logging
 import os
+
+import numpy as np
 from xtb.interface import Calculator
 from xtb.utils import get_method
+
+from constants import ANGSTROM_TO_BOHR, HARTREE_TO_KCAL_MOL
 from readers import atmNToSymb, XYZReader, CHRGReader, toSymbols
-import numpy as np
+from validation import validate_directory_exists, validate_file_exists, validate_env_var
+
+logger = logging.getLogger(__name__)
 
 
 class XtbRunnerFromFiles:
     def __init__(self, chrg: float, multip: float, parm_folder: str, coord_file: str, charg_coord_file: str = None):
-        self.parm_folder = None
-        if os.path.isdir(parm_folder):
-            self.parm_folder = parm_folder
+        validate_directory_exists(parm_folder, "parm_folder")
+        validate_file_exists(coord_file, "coord_file")
 
+        self.parm_folder = parm_folder
+        self.coord_file = coord_file
         self.charg_coord_file = charg_coord_file
-        if os.path.isfile(coord_file):
-            self.coord_file = coord_file
 
         self.chrg = chrg
         self.multip = multip
@@ -22,7 +28,7 @@ class XtbRunnerFromFiles:
         self.elem_indexes = {}
 
     def run(self):
-        base_fold = os.environ['CONDA_PREFIX']
+        base_fold = validate_env_var('CONDA_PREFIX')
         os.environ['XTBHOME'] = base_fold
         os.environ['XTBPATH'] = self.parm_folder
         os.environ['PKG_CONFIG_PATH'] = base_fold + '/lib/pkgconfig'
@@ -38,7 +44,7 @@ class XtbRunnerFromFiles:
             else:
                 self.elem_indexes[elem] = [i]
 
-        calc = Calculator(param=get_method("GFN2-xTB"), numbers=numbers, positions=positions*1.8897259885789,
+        calc = Calculator(param=get_method("GFN2-xTB"), numbers=numbers, positions=positions * ANGSTROM_TO_BOHR,
                           charge=self.chrg, uhf=(self.multip-1))
         if self.charg_coord_file and os.path.isfile(self.charg_coord_file):
             charges, positions = CHRGReader(self.charg_coord_file)
@@ -60,11 +66,10 @@ class XtbRunnerFromFiles:
 class XtbRunner:
     def __init__(self, chrg: float, multip: float, parm_folder: str, atomic_numbers: np.array, coords: np.array,
                  id_: str, ext_chrg_data: str = None, nthreads: int = 16):
-        self.parm_folder = None
-        self.__id = id_
-        if os.path.isdir(parm_folder):
-            self.parm_folder = parm_folder
+        validate_directory_exists(parm_folder, "parm_folder")
 
+        self.parm_folder = parm_folder
+        self.__id = id_
         self.ext_chrg_data = ext_chrg_data
 
         self.coords = coords
@@ -79,7 +84,7 @@ class XtbRunner:
     def run(self):
         #import time
         #start = time.time()
-        base_fold = os.environ['CONDA_PREFIX']
+        base_fold = validate_env_var('CONDA_PREFIX')
         os.environ['XTBHOME'] = base_fold
         os.environ['XTBPATH'] = self.parm_folder
         os.environ['PKG_CONFIG_PATH'] = base_fold + '/lib/pkgconfig'
@@ -89,7 +94,7 @@ class XtbRunner:
         os.environ['OMP_STACKSIZE'] = '10G'
         try:
             calc = Calculator(param=get_method("GFN2-xTB"), numbers=self.atomic_numbers,
-                              positions=self.coords * 1.8897259885789, charge=self.chrg, uhf=(self.multip - 1))
+                              positions=self.coords * ANGSTROM_TO_BOHR, charge=self.chrg, uhf=(self.multip - 1))
             if self.ext_chrg_data is not None:
                 charges = np.array(self.ext_chrg_data['charge'])
                 positions = self.ext_chrg_data[['x', 'y', 'z']].to_numpy()
@@ -108,5 +113,5 @@ class XtbRunner:
 
         #end = time.time()
         #print(f'Execution time: {end - start}')
-        return res.get_energy()*627.509391, res.get_charges(), res.get_gradient()
+        return res.get_energy() * HARTREE_TO_KCAL_MOL, res.get_charges(), res.get_gradient()
 

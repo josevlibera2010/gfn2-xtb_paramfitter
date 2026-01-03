@@ -1,3 +1,4 @@
+import logging
 import os.path
 import shutil
 import sys
@@ -9,6 +10,8 @@ from fitters import XTBCurveAnalyzer
 from inputhandlers import DFTCurveHandler
 from parameters import XTBParam
 
+logger = logging.getLogger(__name__)
+
 
 def sigma_scaler(x: np.float64, k: np.float64) -> np.float64:
     """
@@ -16,11 +19,14 @@ def sigma_scaler(x: np.float64, k: np.float64) -> np.float64:
 
     Args:
         x: Value to scale
-        k: Scaling factor
+        k: Scaling factor (must be non-zero)
 
     Returns:
-        Scaled value using sigmoid function
+        Scaled value using sigmoid function, or 0.5 if k is zero
     """
+    if k == 0:
+        logger.warning("sigma_scaler called with k=0, returning 0.5")
+        return 0.5
     return 1 / (1 + np.exp(- (x - k) / k))
 
 class ECGFittingV3:
@@ -238,6 +244,28 @@ class ECGFittingV3:
 
         escore = None
         try:
+            # Validate divisors to prevent division by zero
+            if npoints <= 1:
+                logger.warning(f"npoints={npoints} is too small for score calculation")
+                log += f"Error: npoints must be > 1, got {npoints}\n"
+                sys.stdout.write(log)
+                sys.stdout.flush()
+                return np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300])
+
+            if len(dist) == 0:
+                logger.warning("dist array is empty")
+                log += "Error: dist array is empty, cannot compute gradient score\n"
+                sys.stdout.write(log)
+                sys.stdout.flush()
+                return np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300])
+
+            if len(chrg_diffs) == 0:
+                logger.warning("chrg_diffs array is empty")
+                log += "Error: chrg_diffs array is empty, cannot compute charge score\n"
+                sys.stdout.write(log)
+                sys.stdout.flush()
+                return np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300])
+
             e1score = 1.0 + e1score
             e2score = 1.0 + np.sqrt(np.dot(energ_diff, energ_diff) / npoints)
             escore = np.power(e1score * e2score, 1.5)

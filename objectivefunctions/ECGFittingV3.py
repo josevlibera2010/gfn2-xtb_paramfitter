@@ -183,8 +183,9 @@ class ECGFittingV3:
                     sys.stdout.flush()
                     return np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300])
 
+                npoints += len(self.curves[cv].energies)
+
                 if self.cv_objectives[cv][0]:
-                    npoints += len(self.curves[cv].energies)
                     evect_diff+=list(evect)
                     energ_diff+=list(energ)
                 if self.cv_objectives[cv][1]:
@@ -252,25 +253,39 @@ class ECGFittingV3:
                 sys.stdout.flush()
                 return np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300])
 
-            if len(dist) == 0:
+            if len(dist) == 0 and any([i[2] for i in self.cv_objectives]):
                 logger.warning("dist array is empty")
                 log += "Error: dist array is empty, cannot compute gradient score\n"
                 sys.stdout.write(log)
                 sys.stdout.flush()
                 return np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300])
 
-            if len(chrg_diffs) == 0:
+            if len(chrg_diffs) == 0 and any([i[1] for i in self.cv_objectives]):
                 logger.warning("chrg_diffs array is empty")
                 log += "Error: chrg_diffs array is empty, cannot compute charge score\n"
                 sys.stdout.write(log)
                 sys.stdout.flush()
                 return np.array([1.0E+300, 1.0E+300, 1.0E+300, 1.0E+300])
 
-            e1score = 1.0 + e1score
-            e2score = 1.0 + np.sqrt(np.dot(energ_diff, energ_diff) / npoints)
+            if any([i[0] for i in self.cv_objectives]):
+                e1score = 1.0 + e1score
+                e2score = 1.0 + np.sqrt(np.dot(energ_diff, energ_diff) / npoints)
+            else:
+                e1score = 1.0
+                e2score = 1.0
+
             escore = np.power(e1score * e2score, 1.5)
-            grad_score = 1.0 + grad_score / len(dist)
-            chrg_score = 1.0 + chrg_score / len(chrg_diffs)
+
+            if any([i[2] for i in self.cv_objectives]):
+                grad_score = 1.0 + grad_score / len(dist)
+            else:
+                grad_score = 1.0
+
+            if any([i[1] for i in self.cv_objectives]):
+                chrg_score = 1.0 + chrg_score / len(chrg_diffs)
+            else:
+                chrg_score = 1.0
+
             tmp_out = f'GRADSCORE: {grad_score:.10f} CHRGSCORE: {chrg_score:.10f} ESCORE: {escore:.10f}'
             tdata = np.array([grad_score, chrg_score, escore])
             if grad_score > self.__gwall or chrg_score > self.__cwall or escore > self.__ewall:

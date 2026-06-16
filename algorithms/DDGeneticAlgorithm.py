@@ -202,6 +202,8 @@ class DDGeneticAlgorithm:
                 par[k] = pop[k].copy()
             for k in range(self.num_elit, self.par_s):
                 index = np.searchsorted(cumprob, np.random.random())
+                if index >= self.par_s:
+                    index = self.par_s - 1
                 par[k] = pop[index].copy()
 
             ef_par_list = np.array([False] * self.par_s)
@@ -556,6 +558,8 @@ class DDGeneticAlgorithmV1(DDGeneticAlgorithm):
                 par[k] = pop[k].copy()
             for k in range(self.num_elit, self.par_s):
                 index = np.searchsorted(cumprob, np.random.random())
+                if index >= self.par_s:
+                    index = self.par_s - 1
                 par[k] = pop[index].copy()
 
             ef_par_list = np.array([False] * self.par_s)
